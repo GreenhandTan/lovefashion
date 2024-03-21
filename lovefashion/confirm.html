@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"/>
+    <title>爱时尚-确认订单</title>
+    <link rel="stylesheet" href="./css/confirm.css"/>
+    <!--vant样式-->
+    <link href="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/vant/2.12.44/index.min.css" rel="stylesheet">
+    <!--引入项目要使用的前端CDN资源类库-->
+    <!--vue2.x-->
+    <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/vue/2.6.14/vue.min.js"></script>
+    <!--axios-->
+    <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/axios/0.26.0/axios.min.js"></script>
+    <!--vant-->
+    <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/vant/2.12.44/vant.min.js"></script>
+    <script src="https://clipboardjs.com/dist/clipboard.min.js"></script>
+
+</head>
+<body>
+
+<div id="app">
+    <div style="background-color: #87CEFA;height: 40px;line-height: 40px;padding: 0px 10px;"><a
+            href="./cart.html"><span>
+						<van-icon name="revoke"/>返回
+					</span></a></div>
+
+    <!--选择地址-->
+    <div class="address-box">
+        <div class="title">收货地址</div>
+        <div class="address-list">
+            <div class="address" v-for="(a,index) in addressList" :class="{active:a.active}"
+                 @click="changeAddress(index)">{{a.address}}
+            </div>
+        </div>
+    </div>
+
+    <!--选择支付方式-->
+    <div class="address-box pay-box">
+        <div class="title">支付方式</div>
+        <div class="address-list" v-for="(pay,index) in payList" :key="index">
+            <div class="address pay" :class="{active:pay.active}" @click="changePay(index)">
+                <span>{{pay.name}}</span><img :src="'./images/'+pay.logo" alt=""/></div>
+
+        </div>
+    </div>
+
+    <!--商品列表预览-->
+    <div class="goodlist-box">
+        <div class="title">商品列表</div>
+        <div class="content">
+            <div>
+                <div class="good" v-for="(g,index) in goodsInCart" :key="index">
+                    <div class="good-pic"><img
+                            :src="g.pic" alt=""/></div>
+                    <div class="good-desc">
+                        <div class="name">{{g.name}}</div>
+                        <div class="desc">x {{g.buyNum}}</div>
+                    </div>
+                </div>
+                <div class="good">
+                    <div class="good-count">商品数量：{{totalNum}}</div>
+                    <div class="good-price">总金额：{{totalPrice}} ¥</div>
+                </div>
+            </div>
+            <div class="empty" v-if="goodsInCart.length==0">
+                购物车中还没有商品!
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <h3 style="color: darkcyan; text-align: center;">生成订单成功</h3>
+        <hr>
+        <div>
+            <ol type="1" style="padding: 10px;">
+                <li>完成支付步骤：</li>
+                <li>1.点击'复制支付地址到粘贴板'</li>
+                <li>2.点击'打开微信'</li>
+                <li>3.粘贴'支付地址'至微信聊天窗口完成支付</li>
+            </ol>
+        </div>
+        <van-button id="clipboard-btn" block plain type="primary" :data-clipboard-text="wxPayUrl">复制支付地址到粘贴板
+        </van-button>
+        <br>
+        <van-button block plain type="warning" onclick="testApp('weixin://')">打开微信</van-button>
+    </div>
+
+    <br>
+    <br>
+    <br>
+    <br>
+
+    <div class="summary">
+        <div class="total">总价: ¥</div>
+        <div class="pay" @click="doPay">确认支付</div>
+        <div class="payover" @click="payOver">完成支付</div>
+    </div>
+
+</div>
+
+<script>
+
+    var clipboard = new ClipboardJS('#clipboard-btn');
+
+    clipboard.on('success', function(e) {
+        console.info('Action:', e.action);
+        console.info('Text:', e.text);
+        console.info('Trigger:', e.trigger);
+        //console.log('复制成功')
+        vm.$dialog.alert({
+            title: '提示信息',
+            message: '支付地址复制成功！',
+        }).then(() => {
+            // on close
+        });
+        e.clearSelection();
+    });
+
+    clipboard.on('error', function(e) {
+        console.error('Action:', e.action);
+        console.error('Trigger:', e.trigger);
+    });
+
+    //打开微信窗口
+    function testApp(url) {
+        var timeout, t = 1000,
+            hasApp = true;
+        setTimeout(function() {
+            if (!hasApp) {
+                //没有安装微信
+                //var r = confirm("您没有安装微信，请先安装微信!");
+                /*
+                if (r == true) {
+                    location.href = "http://weixin.qq.com/"
+                }*/
+            } else {
+                //安装微信
+            }
+            document.body.removeChild(ifr);
+        }, 2000)
+
+        var t1 = Date.now();
+        var ifr = document.createElement("iframe");
+        ifr.setAttribute('src', url);
+        ifr.setAttribute('style', 'display:none');
+        document.body.appendChild(ifr);
+        timeout = setTimeout(function() {
+            var t2 = Date.now();
+            if (!t1 || t2 - t1 < t + 100) {
+                hasApp = false;
+            }
+        }, t);
+    }
+
+    let vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                wxPayUrl: '',  //微信支付接口的地址
+                goodsInCart: [],
+                //收货地址数组
+                addressList: [{
+                    address: '河南省南阳市卧龙区南阳师范学院',
+                    active: true //当前的地址是默认的收获地址
+                },
+                    {
+                        address: '河南省南阳市宛城区南阳理工学院',
+                        active: false //当前的地址是默认的收获地址
+                    },
+                    {
+                        address: '河北省邯郸市-河北工程大学',
+                        active: false //当前的地址是默认的收获地址
+                    }
+                ],
+                //支付方式的数组
+                payList: [{
+                    name: '支付宝', //支付方式的名称
+                    logo: 'alipay.jpg', //支付方式的图片logo
+                    active: true //默认使用的支付方式
+                },
+                    {
+                        name: '微信', //支付方式的名称
+                        logo: 'weixin.jpg', //支付方式的图片logo
+                        active: false //默认使用的支付方式
+                    },
+                    {
+                        name: '银联', //支付方式的名称
+                        logo: 'unipay.jpg', //支付方式的图片logo
+                        active: false //默认使用的支付方式
+                    }
+                ]
+            }
+        },
+
+        computed: {
+            totalNum: function () {
+                return this.goodsInCart.length;
+            },
+            totalPrice: function () {
+                let total = 0;
+                for (let i = 0; i < this.goodsInCart.length; i++) {
+                    let good = this.goodsInCart[i];
+                    //为啥这里不触发计算属性呢？
+                    console.log('in computed: ' + good);
+                    total += good.price * good.buyNum;
+                }
+                return total.toFixed(2); //小数点后保留两位
+            }
+        },
+
+        mounted() {
+            if (window.localStorage.getItem("goodsInCart") != null) {
+                this.goodsInCart = JSON.parse(window.localStorage.getItem("goodsInCart"));
+            }
+        },
+        methods: {
+            //生成UUID的算法.
+            uuid() {
+                let temp_url = URL.createObjectURL(new Blob());
+                let uuid = temp_url.toString(); // blob:https://xxx.com/b250d159-e1b6-4a87-9002-885d90033be3
+                URL.revokeObjectURL(temp_url);
+                return uuid.substr(uuid.lastIndexOf("/") + 1);
+            },
+            //创建订单ID
+            generateOrderId() {
+                let timemill = new Date().getTime();
+                let myDate = new Date((new Date).getTime() + 8 * 60 * 60 * 1000);
+                let time = myDate.toJSON().split('T').join(' ').substr(0, 19); //将1970/08/08转化成1970-08-08
+                time = time.replace(/-/g, '').replace(/ /g, '').replace(/:/g, '')
+                time = time + timemill;
+                let uuid = this.uuid();
+                uuid = uuid.replace(/-/g, '');
+                let id = time + uuid;
+                return id;
+            },
+
+            changeAddress(index) {
+                //循环
+                for (let i = 0; i < this.addressList.length; i++) {
+                    this.addressList[i].active = false;
+                }
+                this.addressList[index].active = true;
+            },
+            changePay(index) {
+                for (let i = 0; i < this.payList.length; i++) {
+                    this.payList[i].active = false;
+                }
+                this.payList[index].active = true;
+            },
+            doPay() {
+                //只支持微信支付。
+                if (!this.payList[1].active) {
+                    //用户如果没有选择使用微信支付，那么给他警告。
+                    this.$dialog.alert({
+                        title: '提示信息',
+                        message: '抱歉，本App仅支持微信支付。',
+                    }).then(() => {
+                        // on close
+                    });
+                    return;
+                }
+
+                //console.log('开始执行微信支付....');
+
+                //生成了一个订单
+                let orderMain = {
+                   oid:this.generateOrderId(),
+                   uid:22,
+                   realname: "南阳理工软件学院",
+                   mobile: '17898744562',
+                   totalPrice: this.totalPrice
+                }
+                //发送一个post,生成一个订单，返回一个微信支付接口地址。
+                axios.post('https://www.simoniu.com/commons/pay/weixin/cashier', orderMain)
+                    .then(response => {
+                        if (response.data.code === 200) {
+                            this.wxPayUrl = response.data.data;
+                            console.log('-----------微信支付接口地址是：---------');
+                            console.log(this.wxPayUrl);
+
+                            this.$dialog.alert({
+                                title: '提示信息',
+                                message: '生成订单成功！',
+                            }).then(() => {
+
+                            }).catch(() => {
+                                    // on cancel
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.log(error)
+                    })
+            },
+            payOver(){
+                //清空缓存
+                window.localStorage.removeItem("goodsInCart");
+                //重定向到首页
+                window.location.href="./index.html";
+            }
+        }
+    })
+</script>
+
+</body>
+</html>
